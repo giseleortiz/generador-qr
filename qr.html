@@ -1,0 +1,123 @@
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Generador de QR con Imagen</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet" />
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen flex flex-col items-center p-4">
+    <h1 class="text-3xl font-bold mb-6 text-gray-800">Generador de Código QR con Imagen</h1>
+
+    <form id="qrForm" class="w-full max-w-md bg-white p-6 rounded-lg shadow-md space-y-6">
+        <div>
+            <label for="text" class="block text-gray-700 font-semibold mb-2">Texto o URL para el QR</label>
+            <input type="text" id="text" name="text" placeholder="Escribe el texto o URL aquí" required
+                class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+
+        <div>
+            <label for="imageUpload" class="block text-gray-700 font-semibold mb-2">Sube una imagen para el centro del
+                QR</label>
+            <input type="file" id="imageUpload" accept="image/*" class="w-full text-gray-700" />
+        </div>
+
+        <button type="submit"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-md transition-colors">
+            Generar QR
+        </button>
+    </form>
+
+    <div id="qrContainer" class="mt-8 flex flex-col items-center space-y-4">
+        <div id="qrCode" class="relative inline-block bg-white p-4 rounded-lg shadow-lg"></div>
+        <a id="downloadBtn" href="#" download="qr-code.png"
+            class="hidden bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-semibold transition-colors">
+            <i class="fas fa-download mr-2"></i> Descargar QR
+        </a>
+    </div>
+
+    <script>
+        const qrForm = document.getElementById('qrForm');
+        const qrCodeContainer = document.getElementById('qrCode');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const imageUpload = document.getElementById('imageUpload');
+
+        qrForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = document.getElementById('text').value.trim();
+            if (!text) return;
+
+            // Clear previous QR
+            qrCodeContainer.innerHTML = '';
+
+            // Generate QR code on a canvas
+            const canvas = document.createElement('canvas');
+            const size = 300;
+
+            try {
+                await QRCode.toCanvas(canvas, text, {
+                    errorCorrectionLevel: 'H',
+                    width: size,
+                    margin: 2,
+                    color: {
+                        dark: '#000000',
+                        light: '#ffffff',
+                    },
+                });
+            } catch (err) {
+                alert('Error generando el código QR');
+                return;
+            }
+
+            //IMAGES
+            if (imageUpload.files.length > 0) {
+                const file = imageUpload.files[0];
+                const img = new Image();
+                const reader = new FileReader();
+
+                reader.onload = function (event) {
+                    img.onload = function () {
+                        const ctx = canvas.getContext('2d');
+                        const imgSize = size * 0.25; // 25% of QR size
+                        const x = (size - imgSize) / 2;
+                        const y = (size - imgSize) / 2;
+
+                        // visibility
+                        ctx.fillStyle = 'white';
+                        ctx.fillRect(x - 5, y - 5, imgSize + 10, imgSize + 10);
+
+                        ctx.drawImage(img, x, y, imgSize, imgSize);
+
+                        qrCodeContainer.appendChild(canvas);
+                        downloadBtn.href = canvas.toDataURL('image/png');
+                        downloadBtn.classList.remove('hidden');
+                    };
+                    img.onerror = function () {
+                        alert('Error al cargar la imagen');
+                        qrCodeContainer.appendChild(canvas);
+                        downloadBtn.href = canvas.toDataURL('image/png');
+                        downloadBtn.classList.remove('hidden');
+                    };
+                    img.src = event.target.result;
+                };
+
+                reader.readAsDataURL(file);
+            } else {
+                qrCodeContainer.appendChild(canvas);
+                downloadBtn.href = canvas.toDataURL('image/png');
+                downloadBtn.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+
+</html>
